@@ -15,7 +15,7 @@ dataset_dir = "openimages"
 test_batch_size = 2
 patch_size = (256, 256)
 
-pull_openimages(traning_size=test_batch_size+1, test_size=test_batch_size, dataset_dir=dataset_dir)
+#pull_openimages(traning_size=test_batch_size+1, test_size=test_batch_size, dataset_dir=dataset_dir)
 
 test_transforms = transforms.Compose(
         [transforms.CenterCrop(patch_size), transforms.ToTensor()]
@@ -38,11 +38,15 @@ state_dict = torch.load("compressai/pretrained/stf_0035_best.pth.tar", map_locat
 state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
 model.load_state_dict(state_dict)
 
+model.update()
+
 
 with torch.no_grad():
     our_batch = next(iter(test_dataloader))
     our_batch = our_batch.to(device)
-    out_net = model(our_batch)['x_hat']
+    comp_out = model.compress(our_batch)
+    out_net = model.decompress(*comp_out.values())['x_hat']
+    #out_net = model(our_batch)['x_hat']
 
 # Plot comparisons
 fig, ax = plt.subplots(nrows=out_net.shape[0], ncols=2)
