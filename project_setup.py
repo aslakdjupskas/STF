@@ -15,7 +15,7 @@ dataset_dir = "openimages"
 test_batch_size = 2
 patch_size = (256, 256)
 
-#pull_openimages(traning_size=test_batch_size+1, test_size=test_batch_size, dataset_dir=dataset_dir)
+pull_openimages(traning_size=test_batch_size+1, test_size=test_batch_size, dataset_dir=dataset_dir)
 
 test_transforms = transforms.Compose(
         [transforms.CenterCrop(patch_size), transforms.ToTensor()]
@@ -45,6 +45,7 @@ with torch.no_grad():
     our_batch = next(iter(test_dataloader))
     our_batch = our_batch.to(device)
     comp_out = model.compress(our_batch)
+    #print(type(comp_out['strings']))
     out_net = model.decompress(*comp_out.values())['x_hat']
     #out_net = model(our_batch)['x_hat']
 
