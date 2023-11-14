@@ -15,7 +15,7 @@ dataset_dir = "openimages"
 test_batch_size = 2
 patch_size = (256, 256)
 
-pull_openimages(traning_size=test_batch_size+1, test_size=test_batch_size, dataset_dir=dataset_dir)
+#pull_openimages(traning_size=test_batch_size+1, test_size=test_batch_size, dataset_dir=dataset_dir)
 
 test_transforms = transforms.Compose(
         [transforms.CenterCrop(patch_size), transforms.ToTensor()]
@@ -26,7 +26,7 @@ test_dataset = ImageFolder(dataset_dir, split="test", transform=test_transforms)
 test_dataloader = DataLoader(
     test_dataset,
     batch_size=test_batch_size,
-    num_workers=1,
+    #num_workers=1,
     shuffle=False,
     pin_memory=(device == "cuda"),
 )
@@ -44,11 +44,12 @@ model.update()
 with torch.no_grad():
     our_batch = next(iter(test_dataloader))
     our_batch = our_batch.to(device)
-    comp_out = model.compress(our_batch)
-    #print(type(comp_out['strings']))
+    comp_out = model.compress3(our_batch)
     out_net = model.decompress(*comp_out.values())['x_hat']
     #out_net = model(our_batch)['x_hat']
 
+print("Jomar")
+input()
 # Plot comparisons
 fig, ax = plt.subplots(nrows=out_net.shape[0], ncols=2)
 for i in range(out_net.shape[0]):

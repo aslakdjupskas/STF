@@ -126,12 +126,19 @@ class EntropyModel(nn.Module):
     def quantize(
         self, inputs: Tensor, mode: str, means: Optional[Tensor] = None
     ) -> Tensor:
-        if mode not in ("noise", "dequantize", "symbols"):
+        if mode not in ("noise", "dequantize", "symbols", "symbol_continuous"):
             raise ValueError(f'Invalid quantization mode: "{mode}"')
         if mode == "noise":
             half = float(0.5)
             noise = torch.empty_like(inputs).uniform_(-half, half)
             inputs = inputs + noise
+            return inputs
+        
+        if mode == "symbol_continuous":
+
+            #if means is not None:
+            #    inputs -= means
+
             return inputs
 
         outputs = inputs.clone()
@@ -651,6 +658,9 @@ class GaussianConditional(EntropyModel):
     ) -> Tuple[Tensor, Tensor]:
         if training is None:
             training = self.training
+
+        #mode = "noise" if training else "dequantize"
+        #mode = mode if training != "symbol_continuous" else "symbol_continuous"
         outputs = self.quantize(inputs, "noise" if training else "dequantize", means)
         likelihood = self._likelihood(outputs, scales, means)
         if self.use_likelihood_bound:
