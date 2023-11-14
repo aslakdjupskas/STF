@@ -44,11 +44,25 @@ model.update()
 with torch.no_grad():
     our_batch = next(iter(test_dataloader))
     our_batch = our_batch.to(device)
-    comp_out = model.compress3(our_batch)
-    out_net = model.decompress(*comp_out.values())['x_hat']
+
+    normal_compression = model.compress(our_batch)
+
+    y_hat_decoded, z_hat_decoded = model.decde_latent(*normal_compression.values())
+    y_hat_compressed, z_hat_compressed = model.continious_compress(our_batch)
+
+    print("y_hat_decoded", y_hat_decoded.shape, "y_hat_compressed", y_hat_compressed.shape)
+    print("z_hat_decoded", z_hat_decoded.shape, "z_hat_compressed", z_hat_compressed.shape)
+
+    print("y_hat_decoded", y_hat_decoded[1][1][100], "y_hat_compressed", y_hat_compressed[1][1][100])
+    print("z_hat_decoded", z_hat_decoded[1][1][2][3], "z_hat_compressed", z_hat_compressed[1][1][2][3])
+
+    model.decompress(*normal_compression.values())
+    #print("z_hat_decoded", z_hat_decoded[0][)
+    #comp_out = model.compress3(our_batch)
+    #out_net = model.decompress(*comp_out.values())['x_hat']
     #out_net = model(our_batch)['x_hat']
 
-print("Jomar")
+'''print("Jomar")
 input()
 # Plot comparisons
 fig, ax = plt.subplots(nrows=out_net.shape[0], ncols=2)
@@ -58,4 +72,4 @@ for i in range(out_net.shape[0]):
     ax[i, 0].set_title("Original")
     ax[i, 1].set_title("Reconstructed")
 
-plt.show()
+plt.show()'''

@@ -666,118 +666,8 @@ class SymmetricalTransFormer(CompressionModel):
         net = cls()
         net.load_state_dict(state_dict)
         return net
-    
 
-    def my_compress(self, x):
-
-        # This must be embedding
-        x = self.patch_embed(x)
-
-        # This must be the actual compression?
-        Wh, Ww = x.size(2), x.size(3)
-        x = x.flatten(2).transpose(1, 2)
-        x = self.pos_drop(x)
-        for i in range(self.num_layers):
-            layer = self.layers[i]
-            x, Wh, Ww = layer(x, Wh, Ww)
-
-        y = x
-        C = self.embed_dim * 8
-        y = y.view(-1, Wh, Ww, C).permute(0, 3, 1, 2).contiguous()
-        y_shape = y.shape[2:]
-
-        z = self.h_a(y)
-
-        # I added this
-        z_strings = self.entropy_bottleneck.compress(z)
-
-        _, z_likelihoods = self.entropy_bottleneck(z)
-        z_offset = self.entropy_bottleneck._get_medians()
-        z_tmp = z - z_offset
-        z_hat = ste_round(z_tmp) + z_offset
-
-        latent_scales = self.h_scale_s(z_hat)
-        latent_means = self.h_mean_s(z_hat)
-
-
-        cdf = self.gaussian_conditional.quantized_cdf.tolist()
-        cdf_lengths = self.gaussian_conditional.cdf_length.reshape(-1).int().tolist()
-        offsets = self.gaussian_conditional.offset.reshape(-1).int().tolist()
-
-        y_slices = y.chunk(self.num_slices, 1)
-        y_hat_slices = []
-        y_likelihood = []
-        indexes_list = []
-
-        for slice_index, y_slice in enumerate(y_slices):
-            support_slices = (y_hat_slices if self.max_support_slices < 0 else y_hat_slices[:self.max_support_slices])
-            mean_support = torch.cat([latent_means] + support_slices, dim=1)
-            mu = self.cc_mean_transforms[slice_index](mean_support)
-            mu = mu[:, :, :y_shape[0], :y_shape[1]]
-
-            scale_support = torch.cat([latent_scales] + support_slices, dim=1)
-            scale = self.cc_scale_transforms[slice_index](scale_support)
-            scale = scale[:, :, :y_shape[0], :y_shape[1]]
-
-            index = self.gaussian_conditional.build_indexes(scale)
-
-            #_, y_slice_likelihood = self.gaussian_conditional(y_slice, scale, mu, training="symbol_continuous")
-            y_slice_likelihood = self.gaussian_conditional.quantize(y_slice, "symbols", mu)
-
-            y_likelihood.append(y_slice_likelihood)
-            y_hat_slice = ste_round(y_slice - mu) + mu
-
-            indexes_list.extend(index.reshape(-1).tolist())
-
-            lrp_support = torch.cat([mean_support, y_hat_slice], dim=1)
-            lrp = self.lrp_transforms[slice_index](lrp_support)
-            lrp = 0.5 * torch.tanh(lrp)
-            y_hat_slice += lrp
-
-            y_hat_slices.append(y_hat_slice)
-
-        # What is y_likelihoods?
-        y_hat = torch.cat(y_hat_slices, dim=1)
-        y_likelihoods = torch.cat(y_likelihood, dim=1)
-
-        print("Jul1")
-        input()
-
-        encoder = BufferedRansEncoder()
-
-        print("Jul2")
-        input()
-        #symbols_list = y_likelihoods.reshape(-1).round().int().tolist()
-        symbols_list = y_likelihoods.reshape(-1).int().tolist()
-        print(len(symbols_list), type(symbols_list[0]))
-
-        print("Jul3")
-        input()
-        encoder.encode_with_indexes(symbols_list, indexes_list, cdf, cdf_lengths, offsets)
-
-        print("Jul4")
-        input()
-        y_strings = [encoder.flush()]
-
-        print("Jul5")
-        input()
-
-
-        # This should be the decompression
-        '''y_hat = y_hat.permute(0, 2, 3, 1).contiguous().view(-1, Wh*Ww, C)
-        for i in range(self.num_layers):
-            layer = self.syn_layers[i]
-            y_hat, Wh, Ww = layer(y_hat, Wh, Ww)
-
-        x_hat = self.end_conv(y_hat.view(-1, Wh, Ww, self.embed_dim).permute(0, 3, 1, 2).contiguous())
-        return {
-            "x_hat": x_hat,
-            "likelihoods": {"y": y_likelihoods, "z": z_likelihoods},
-        }'''
-
-        return {"strings": [y_strings, z_strings], "shape": z.size()[-2:]}
-
-    def compress3(self, x):
+    def continious_compress(self, x):
         x = self.patch_embed(x)
 
         Wh, Ww = x.size(2), x.size(3)
@@ -877,7 +767,9 @@ class SymmetricalTransFormer(CompressionModel):
 
         # The important thing here is z_hat and y_hat?
 
-        return {"strings": [y_strings, z_strings], "shape": z.size()[-2:]}
+        return y_hat, z_hat
+
+        #return {"strings": [y_strings, z_strings], "shape": z.size()[-2:]}
 
 
     def decde_latent(self, strings, shape):
@@ -944,10 +836,10 @@ class SymmetricalTransFormer(CompressionModel):
         y_shape = y.shape[2:]
 
         z = self.h_a(y)
-        print(type(z), z.shape, z[1][2][3][2])
+        #print(type(z), z.shape, z[1][2][3][2])
         z_strings = self.entropy_bottleneck.compress(z)
         z_hat = self.entropy_bottleneck.decompress(z_strings, z.size()[-2:])
-        print(type(z_hat), z_hat.shape, z_hat[1][2][3][2])
+        #print(type(z_hat), z_hat.shape, z_hat[1][2][3][2])
 
         latent_scales = self.h_scale_s(z_hat)
         latent_means = self.h_mean_s(z_hat)
@@ -1044,6 +936,8 @@ class SymmetricalTransFormer(CompressionModel):
 
         y_hat = torch.cat(y_hat_slices, dim=1)
         y_hat = y_hat.permute(0, 2, 3, 1).contiguous().view(-1, Wh * Ww, C)
+
+        print("Extra:", y_hat[1][1][100])
         for i in range(self.num_layers):
             layer = self.syn_layers[i]
             y_hat, Wh, Ww = layer(y_hat, Wh, Ww)
