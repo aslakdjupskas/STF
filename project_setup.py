@@ -8,6 +8,7 @@ from compressai.datasets import ImageFolder
 from compressai.models import SymmetricalTransFormer
 
 import matplotlib.pyplot as plt
+from matplotlib import cm, colors
 
 device = "cpu"
 
@@ -122,18 +123,28 @@ for i in range(10):
 #print("Jomar")
 #input()
 # Plot comparisons
-fig, ax = plt.subplots(nrows=normal_reconstruction.shape[0], ncols=3)
+fig, ax = plt.subplots(nrows=normal_reconstruction.shape[0], ncols=4)
 #print(normal_reconstruction.shape[0])
 for i in range(normal_reconstruction.shape[0]):
     #print(i)
     normal_reconstruction_im = normal_reconstruction[i].detach().permute(1, 2, 0)
     reconstructed_image_im = reconstructed_image[i].detach().permute(1, 2, 0)
+    diff = torch.sum(torch.abs(normal_reconstruction_im - reconstructed_image_im).detach(), -1)
+    #print(diff.shape)
     print("Difference:", torch.sum(torch.abs(normal_reconstruction_im - reconstructed_image_im)).item())
     ax[i, 0].imshow(our_batch[i].permute(1, 2, 0))
     ax[i, 1].imshow(normal_reconstruction_im, vmin=0, vmax=1)
     ax[i, 2].imshow(reconstructed_image_im, vmin=0, vmax=1)
+    ax[i, 3].imshow(diff, cmap='hot')
     ax[i, 0].set_title("Original")
     ax[i, 1].set_title("Reconstructed")
     ax[i, 2].set_title("Our Reconstruction")
+    ax[i, 3].set_title("Difference of methods")
+
+    cmap = cm.get_cmap("hot")
+    norm = colors.Normalize(diff.min(), diff.max())
+
+    fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax[i, 3])
+    #plt.colorbar(ax=ax[i, 3])
 
 plt.show()
