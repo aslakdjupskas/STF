@@ -33,7 +33,7 @@ test_dataloader = DataLoader(
 
 # Load model
 #model_info = torch.load("compressai/pretrained/stf_0035_best.pth.tar", map_location=torch.device('cpu'))
-model = SymmetricalTransFormer()
+model = SymmetricalTransFormer(drop_path_rate=0.0)
 state_dict = torch.load("compressai/pretrained/stf_0035_best.pth.tar", map_location=torch.device('cpu'))['state_dict']
 state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
 model.load_state_dict(state_dict)
@@ -57,6 +57,8 @@ with torch.no_grad():
     print("z_hat_decoded", z_hat_decoded[1][1][2][3], "z_hat_compressed", z_hat_compressed[1][1][2][3])
 
     model.decompress(*normal_compression.values())
+
+    print(model(our_batch)["likelihoods"]["y"].shape)
     #print("z_hat_decoded", z_hat_decoded[0][)
     #comp_out = model.compress3(our_batch)
     #out_net = model.decompress(*comp_out.values())['x_hat']

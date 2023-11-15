@@ -618,7 +618,7 @@ class SymmetricalTransFormer(CompressionModel):
             scale = self.cc_scale_transforms[slice_index](scale_support)
             scale = scale[:, :, :y_shape[0], :y_shape[1]]
 
-            _, y_slice_likelihood = self.gaussian_conditional(y_slice, scale, mu)
+            _, y_slice_likelihood = self.gaussian_conditional(y_slice, scale, mu, training="symbol_continuous")
 
             y_likelihood.append(y_slice_likelihood)
             y_hat_slice = ste_round(y_slice - mu) + mu
@@ -633,12 +633,17 @@ class SymmetricalTransFormer(CompressionModel):
         y_hat = torch.cat(y_hat_slices, dim=1)
         y_likelihoods = torch.cat(y_likelihood, dim=1)
 
+        print("Orginal y_hat dim", y_hat.shape)
         y_hat = y_hat.permute(0, 2, 3, 1).contiguous().view(-1, Wh*Ww, C)
+        y_likelihoods = y_likelihoods.permute(0, 2, 3, 1).contiguous().view(-1, Wh*Ww, C) # Not like original
+        print("Likelihood value:", y_likelihoods[1][1][101])
+        print("Forward:", y_hat[1][1][100])
         for i in range(self.num_layers):
             layer = self.syn_layers[i]
             y_hat, Wh, Ww = layer(y_hat, Wh, Ww)
 
         x_hat = self.end_conv(y_hat.view(-1, Wh, Ww, self.embed_dim).permute(0, 3, 1, 2).contiguous())
+        print("Original likelihood dim", y_likelihoods.shape)
         return {
             "x_hat": x_hat,
             "likelihoods": {"y": y_likelihoods, "z": z_likelihoods},
@@ -709,6 +714,7 @@ class SymmetricalTransFormer(CompressionModel):
         symbols_list = []
         indexes_list = []
         y_strings = []
+        y_likelihood = []
 
         for slice_index, y_slice in enumerate(y_slices):
             support_slices = (y_hat_slices if self.max_support_slices < 0 else y_hat_slices[:self.max_support_slices])

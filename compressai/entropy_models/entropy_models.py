@@ -659,9 +659,9 @@ class GaussianConditional(EntropyModel):
         if training is None:
             training = self.training
 
-        #mode = "noise" if training else "dequantize"
-        #mode = mode if training != "symbol_continuous" else "symbol_continuous"
-        outputs = self.quantize(inputs, "noise" if training else "dequantize", means)
+        mode = "noise" if training else "dequantize"
+        mode = mode if training != "symbol_continuous" else "symbol_continuous"
+        outputs = self.quantize(inputs, mode, means)
         likelihood = self._likelihood(outputs, scales, means)
         if self.use_likelihood_bound:
             likelihood = self.likelihood_lower_bound(likelihood)
