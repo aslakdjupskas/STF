@@ -18,7 +18,7 @@ dataset_dir = "openimages"
 test_batch_size = 2
 patch_size = (256, 256)
 
-#pull_openimages(traning_size=test_batch_size+1, test_size=test_batch_size, dataset_dir=dataset_dir)
+pull_openimages(traning_size=test_batch_size+1, test_size=test_batch_size, dataset_dir=dataset_dir)
 
 test_transforms = transforms.Compose(
         [transforms.CenterCrop(patch_size), transforms.ToTensor()]
