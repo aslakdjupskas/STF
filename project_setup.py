@@ -3,7 +3,7 @@ import torch
 import os
 from PIL import Image
 from torchvision.utils import save_image
-from compressai.utils import eval_model
+from compressai.utils.eval_model.__main__ import eval_model
 
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -71,8 +71,13 @@ os.makedirs(base_folder, exist_ok=True)
 save_images(out_net, base_folder, "out_net_images")
 save_images(our_batch, base_folder, "our_batch_images")
 
-metrics = eval_model(model, '/save_images/out_net_images', entropy_estimation=False, half=False, recon_path='reconstruction')
-
+# metrics = eval_model(
+#     model, 
+#     filepaths='/save_images/our_batch_images',
+#     entropy_estimation=False, 
+#     half=False, 
+#     recon_path='/save_images/out_net_images'
+# )
 
 
 print("Jomar")
