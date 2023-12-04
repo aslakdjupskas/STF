@@ -12,7 +12,7 @@ from compressai.models import SymmetricalTransFormer
 
 import matplotlib.pyplot as plt
 
-device = "cuda"
+device = "cpu"
 
 dataset_dir = "openimages"
 test_batch_size = 2
@@ -37,7 +37,7 @@ test_dataloader = DataLoader(
 # Load model
 #model_info = torch.load("compressai/pretrained/stf_0035_best.pth.tar", map_location=torch.device('cpu'))
 model = SymmetricalTransFormer()
-state_dict = torch.load("compressai/pretrained/stf_0035_best.pth.tar", map_location=torch.device('cuda'))['state_dict']
+state_dict = torch.load("compressai/pretrained/stf_0035_best.pth.tar", map_location=torch.device('cpu'))['state_dict']
 state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
 model.load_state_dict(state_dict)
 model.update()
@@ -69,6 +69,8 @@ os.makedirs(base_folder, exist_ok=True)
 # Save images
 save_images(out_net, base_folder, "out_net_images")
 save_images(our_batch, base_folder, "our_batch_images")
+
+
 
 
 print("Jomar")
