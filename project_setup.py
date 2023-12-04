@@ -1,5 +1,8 @@
 import torch
 from openimages_load import pull_openimages
+import os
+from PIL import Image
+from torchvision.utils import save_image
 
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -37,9 +40,7 @@ model = SymmetricalTransFormer()
 state_dict = torch.load("compressai/pretrained/stf_0035_best.pth.tar", map_location=torch.device('cpu'))['state_dict']
 state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
 model.load_state_dict(state_dict)
-
 model.update()
-
 
 with torch.no_grad():
     our_batch = next(iter(test_dataloader))
@@ -47,6 +48,28 @@ with torch.no_grad():
     comp_out = model.compress3(our_batch)
     out_net = model.decompress(*comp_out.values())['x_hat']
     #out_net = model(our_batch)['x_hat']
+print(out_net.type) # --> <built-in method type of Tensor object at 0x2a3d0a3f0>
+print(our_batch.type) # --> <built-in method type of Tensor object at 0x2a3d0ab70>
+
+# Savimages from out_net and our_batch to a folder
+def save_images(tensor, base_folder, subfolder_name):
+    # Create subfolder
+    folder_path = os.path.join(base_folder, subfolder_name)
+    os.makedirs(folder_path, exist_ok=True)
+    
+    # Save images
+    for i, img in enumerate(tensor):
+        img_path = os.path.join(folder_path, f"image_{i}.png")
+        save_image(img, img_path)
+
+# Create base folder
+base_folder = "saved_images"
+os.makedirs(base_folder, exist_ok=True)
+
+# Save images
+save_images(out_net, base_folder, "out_net_images")
+save_images(our_batch, base_folder, "our_batch_images")
+
 
 print("Jomar")
 input()
