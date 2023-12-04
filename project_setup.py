@@ -1,8 +1,9 @@
 import torch
-from openimages_load import pull_openimages
+# from openimages_load import pull_openimages
 import os
 from PIL import Image
 from torchvision.utils import save_image
+from compressai.utils import eval_model
 
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -18,7 +19,7 @@ dataset_dir = "openimages"
 test_batch_size = 2
 patch_size = (256, 256)
 
-pull_openimages(traning_size=test_batch_size+1, test_size=test_batch_size, dataset_dir=dataset_dir)
+# pull_openimages(traning_size=test_batch_size+1, test_size=test_batch_size, dataset_dir=dataset_dir)
 
 test_transforms = transforms.Compose(
         [transforms.CenterCrop(patch_size), transforms.ToTensor()]
@@ -70,6 +71,7 @@ os.makedirs(base_folder, exist_ok=True)
 save_images(out_net, base_folder, "out_net_images")
 save_images(our_batch, base_folder, "our_batch_images")
 
+metrics = eval_model(model, '/save_images/out_net_images', entropy_estimation=False, half=False, recon_path='reconstruction')
 
 
 
