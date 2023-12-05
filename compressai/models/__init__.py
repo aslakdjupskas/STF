@@ -15,4 +15,4 @@
 
 from .stf import SymmetricalTransFormer
 from .cnn import WACNN
-from .stf_optimizer import STFOptimizer
+from .stf_optimizer import STFBaseOptimizer, STFCompressOptimizer, STFDecompressOptimizer, STFFullOptimizer, STFDemonstrateNoQuantization

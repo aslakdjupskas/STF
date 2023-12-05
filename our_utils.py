@@ -8,7 +8,7 @@ from torchvision import transforms
 import matplotlib.pyplot as plt
 from matplotlib import cm, colors
 
-from compressai.models.stf_optimizer import STFOptimizer
+from compressai.models.stf_optimizer import STFBaseOptimizer
 
 
 def pull_openimages(traning_size, test_size, dataset_dir="openimages"):
@@ -47,9 +47,9 @@ def prepare_data_loader(patch_size, test_batch_size, device="cpu", dataset_dir="
 
     return test_dataloader
 
-def load_pretrained_model(path, device="cpu", freeze=True) -> STFOptimizer:
+def load_pretrained_model(path, device="cpu", freeze=True) -> STFBaseOptimizer:
 
-    model = STFOptimizer(drop_path_rate=0.0)
+    model = STFBaseOptimizer(drop_path_rate=0.0)
     state_dict = torch.load(path, map_location=torch.device(device))['state_dict']
     state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
     model.load_state_dict(state_dict)

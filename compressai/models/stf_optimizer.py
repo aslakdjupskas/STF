@@ -3,13 +3,7 @@ from .stf import SymmetricalTransFormer
 from compressai.ops import ste_round
 from compressai.ans import BufferedRansEncoder, RansDecoder
 
-class STFOptimizer(SymmetricalTransFormer):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.compressor = "optimized"
-        self.decompressor = "optimized"
-        self.meta_args = {}
+class STFBaseOptimizer(SymmetricalTransFormer):
 
     def eval(self):
         '''
@@ -20,34 +14,6 @@ class STFOptimizer(SymmetricalTransFormer):
             param.requires_grad = False
 
         return self
-
-    def set_compressor_decompressor(self, compressor, decompressor, meta_args={}):
-
-        if compressor not in ["standard", "optimized"]:
-            raise ValueError(f"Compressor {compressor} not supported")
-        if decompressor not in ["standard", "optimized", "no_quantization"]:
-            raise ValueError(f"Decompressor {decompressor} not supported")
-
-        self.compressor = compressor
-        self.decompressor = decompressor
-        self.meta_args = meta_args
-
-    def compress(self, original_image):
-        if self.compressor == "standard":
-            return super().compress(original_image)
-        elif self.compressor == "optimized":
-            with torch.enable_grad():
-                return self.optimized_compress(original_image)
-        
-    def decompress(self, strings, shape):
-        if self.decompressor == "standard":
-            return super().decompress(strings, shape)
-        elif self.decompressor == "optimized":
-            with torch.enable_grad():
-                return self.optimized_decompress(strings, shape)
-        elif self.decompressor == "no_quantization":
-            with torch.enable_grad():
-                return self.y_bar_optimize_from_imagedecoder(strings, shape, **self.meta_args)
     
 
     def continious_compress_to_y_bar(self, x):
@@ -385,3 +351,35 @@ class STFOptimizer(SymmetricalTransFormer):
                 print(f"Iteration {i+1}, loss: {loss.item()}, difference: {torch.sum(torch.abs(normal_reconstruction - reconstructed_image)).item()}")
 
         return reconstructed_image
+    
+class STFCompressOptimizer(STFBaseOptimizer):
+
+    def compress(self, x):
+        with torch.enable_grad():
+            return self.optimized_compress(x)
+    
+class STFDecompressOptimizer(STFBaseOptimizer):
+
+    def decompress(self, strings, shape):
+        with torch.enable_grad():
+            return self.optimized_decompress(strings, shape)
+
+class STFFullOptimizer(STFBaseOptimizer):
+
+    def compress(self, x):
+        with torch.enable_grad():
+            return self.optimized_compress(x)
+    
+    def decompress(self, strings, shape):
+        with torch.enable_grad():
+            return self.optimized_decompress(strings, shape)
+        
+class STFDemonstrateNoQuantization(STFBaseOptimizer):
+    
+    def compress(self, x):
+        self.original_image = x
+        super().compress(x)
+
+    def decompress(self, strings, shape):
+        with torch.enable_grad():
+            return self.y_bar_optimize_from_imagedecoder(strings, shape, self.original_image)
