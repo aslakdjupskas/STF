@@ -314,9 +314,9 @@ class STFOptimizer(SymmetricalTransFormer):
                 print(f"Iteration {i+1}, loss: {loss.item()}, difference: {torch.sum(torch.abs(normal_reconstruction - reconstructed_image)).item()}")
 
         real_compress = self.real_compress_y(y_param, Wh, Ww)
-        reconstructed_image = self.decompress(*real_compress.values())['x_hat']
 
         if verbose:
+            reconstructed_image = super().decompress(*real_compress.values())['x_hat']
             print(f"Final, loss: {loss.item()}, difference: {torch.sum(torch.abs(normal_reconstruction - reconstructed_image)).item()}")
 
         return real_compress
@@ -329,7 +329,7 @@ class STFOptimizer(SymmetricalTransFormer):
         real_y_bar, _ = self.real_decode_to_y_bar(strings, shape)
 
         # Regain images
-        reconstructed_image = self.decompress(strings, shape)['x_hat']
+        reconstructed_image = super().decompress(strings, shape)['x_hat']
         reconstructed_image = torch.nn.Parameter(reconstructed_image.detach(), requires_grad=True)
 
 
