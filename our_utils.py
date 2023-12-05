@@ -30,7 +30,7 @@ def pull_openimages(traning_size, test_size, dataset_dir="openimages"):
 
 def prepare_data_loader(patch_size, test_batch_size, device="cpu", dataset_dir="openimages") -> DataLoader:
 
-    pull_openimages(traning_size=test_batch_size+1, test_size=test_batch_size, dataset_dir=dataset_dir)
+    #pull_openimages(traning_size=0, test_size=test_batch_size, dataset_dir=dataset_dir)
 
     test_transforms = transforms.Compose(
             [transforms.CenterCrop(patch_size), transforms.ToTensor()]

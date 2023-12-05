@@ -7,8 +7,8 @@ class STFOptimizer(SymmetricalTransFormer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.compressor = "standard"
-        self.decompressor = "standard"
+        self.compressor = "optimized"
+        self.decompressor = "optimized"
         self.meta_args = {}
 
     def set_compressor_decompressor(self, compressor, decompressor, meta_args={}):
