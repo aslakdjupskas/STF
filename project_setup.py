@@ -13,13 +13,18 @@ from compressai.models import SymmetricalTransFormer
 
 import matplotlib.pyplot as plt
 
+from math import log10, sqrt 
+import cv2 
+import numpy as np 
+
+
 device = "cpu"
 
 dataset_dir = "openimages"
 test_batch_size = 2
 patch_size = (256, 256)
 
-pull_openimages(traning_size=test_batch_size+1, test_size=test_batch_size, dataset_dir=dataset_dir)
+# pull_openimages(traning_size=test_batch_size+1, test_size=test_batch_size, dataset_dir=dataset_dir)
 
 test_transforms = transforms.Compose(
         [transforms.CenterCrop(patch_size), transforms.ToTensor()]
@@ -70,15 +75,20 @@ os.makedirs(base_folder, exist_ok=True)
 # Save images
 save_images(out_net, base_folder, "out_net_images")
 save_images(our_batch, base_folder, "our_batch_images")
+  
+def PSNR(original, compressed): 
+    mse = np.mean((original - compressed) ** 2) 
+    if(mse == 0):  # MSE is zero means no noise is present in the signal . 
+                  # Therefore PSNR have no importance. 
+        return 100
+    max_pixel = 255.0
+    psnr = 20 * log10(max_pixel / sqrt(mse)) 
+    return psnr
+pnsr_score = []
 
-# metrics = eval_model(
-#     model, 
-#     filepaths='/save_images/our_batch_images',
-#     entropy_estimation=False, 
-#     half=False, 
-#     recon_path='/save_images/out_net_images'
-# )
-
+for i in range(out_net.shape[0]):
+    pnsr_score.append(PSNR(np.array(our_batch[i]), np.array(out_net[i])))
+print(np.sum(pnsr_score)/len(pnsr_score))
 
 print("Jomar")
 input()

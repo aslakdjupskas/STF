@@ -127,3 +127,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+/openimages
+compressai/pretrained/stf_0035_best.pth.tar
