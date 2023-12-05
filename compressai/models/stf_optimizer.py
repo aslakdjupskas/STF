@@ -317,7 +317,7 @@ class STFBaseOptimizer(SymmetricalTransFormer):
             if verbose:
                 print(f"Iteration {i+1}, loss: {loss.item()}, difference: {torch.sum(torch.abs(normal_reconstruction - reconstructed_image)).item()}")
 
-        return reconstructed_image
+        return {"x_hat": reconstructed_image}
     
     def y_bar_optimize_from_imagedecoder(self, strings, shape, original_image=None, learning_rate=0.001, iterations=1000, normal_reconstruction=None, verbose=False):
         '''
@@ -350,7 +350,7 @@ class STFBaseOptimizer(SymmetricalTransFormer):
             if verbose:
                 print(f"Iteration {i+1}, loss: {loss.item()}, difference: {torch.sum(torch.abs(normal_reconstruction - reconstructed_image)).item()}")
 
-        return reconstructed_image
+        return {"x_hat": reconstructed_image}
     
 class STFCompressOptimizer(STFBaseOptimizer):
 
