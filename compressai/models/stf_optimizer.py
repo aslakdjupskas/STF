@@ -11,6 +11,18 @@ class STFOptimizer(SymmetricalTransFormer):
         self.decompressor = "optimized"
         self.meta_args = {}
 
+    def eval(self):
+        '''
+        This model actually needs to keep track of gradients when doing evaluation
+        '''
+
+        self.update()
+
+        for param in self.parameters():
+            param.requires_grad = False
+
+        return self
+
     def set_compressor_decompressor(self, compressor, decompressor, meta_args={}):
 
         if compressor not in ["standard", "optimized"]:
