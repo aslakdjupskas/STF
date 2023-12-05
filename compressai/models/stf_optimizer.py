@@ -1,9 +1,41 @@
 import torch
-from compressai.models import SymmetricalTransFormer
+from .stf import SymmetricalTransFormer
 from compressai.ops import ste_round
 from compressai.ans import BufferedRansEncoder, RansDecoder
 
-class OurModel(SymmetricalTransFormer):
+class STFOptimizer(SymmetricalTransFormer):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.compressor = "standard"
+        self.decompressor = "standard"
+        self.meta_args = {}
+
+    def set_compressor_decompressor(self, compressor, decompressor, meta_args={}):
+
+        if compressor not in ["standard", "optimized"]:
+            raise ValueError(f"Compressor {compressor} not supported")
+        if decompressor not in ["standard", "optimized", "no_quantization"]:
+            raise ValueError(f"Decompressor {decompressor} not supported")
+
+        self.compressor = compressor
+        self.decompressor = decompressor
+        self.meta_args = meta_args
+
+    def compress(self, original_image):
+        if self.compressor == "standard":
+            return super().compress(original_image)
+        elif self.compressor == "optimized":
+            return self.optimized_compress(original_image)
+        
+    def decompress(self, strings, shape):
+        if self.decompressor == "standard":
+            return super().decompress(strings, shape)
+        elif self.decompressor == "optimized":
+            return self.optimized_decompress(strings, shape)
+        elif self.decompressor == "no_quantization":
+            self.y_bar_optimize_from_imagedecoder(strings, shape, iterations=3, **self.meta_args)
+    
 
     def continious_compress_to_y_bar(self, x):
 
@@ -241,3 +273,102 @@ class OurModel(SymmetricalTransFormer):
         x_hat = self.end_conv(y_hat.view(-1, Wh, Ww, self.embed_dim).permute(0, 3, 1, 2).contiguous())
 
         return x_hat
+    
+    # View as trained compression
+    def optimized_compress(self, original_image, iterations=1000, normal_reconstruction=None, verbose=False):
+
+        '''
+        Generate compression from optimizing y when decoding and reconstructing the image
+        '''
+        
+        y, Wh, Ww = self.continious_compress_to_y(original_image)
+        y_param = torch.nn.Parameter(y, requires_grad=True)
+
+        learning_rate = 0.0001
+        optim = torch.optim.Adam([y_param], lr=learning_rate)
+
+        for i in range(iterations):
+
+            reconstructed_image = self.continious_decompress_from_y(y_param, Wh, Ww)['x_hat']
+
+            loss = torch.nn.functional.mse_loss(reconstructed_image, original_image)
+
+            optim.zero_grad()
+            loss.backward()
+            optim.step()
+
+            if verbose:
+                print(f"Iteration {i+1}, loss: {loss.item()}, difference: {torch.sum(torch.abs(normal_reconstruction - reconstructed_image)).item()}")
+
+        real_compress = self.real_compress_y(y_param, Wh, Ww)
+        reconstructed_image = self.decompress(*real_compress.values())['x_hat']
+
+        if verbose:
+            print(f"Final, loss: {loss.item()}, difference: {torch.sum(torch.abs(normal_reconstruction - reconstructed_image)).item()}")
+
+        return real_compress
+
+    # View as trained decrompession
+    def optimized_decompress(self, strings, shape, learning_rate=0.0001, iterations=1000, normal_reconstruction=None, verbose=False):
+        '''
+        Reconstruct images by optimizing image to get the same y_bar as given from compression
+        '''
+        real_y_bar, _ = self.real_decode_to_y_bar(strings, shape)
+
+        # Regain images
+        reconstructed_image = self.decompress(strings, shape)['x_hat']
+        reconstructed_image = torch.nn.Parameter(reconstructed_image.detach(), requires_grad=True)
+
+
+        learning_rate = 0.0001
+        optim = torch.optim.Adam([reconstructed_image], lr=learning_rate)
+
+        # Optimize reconstructed images
+        for i in range(iterations):
+            # Now feed this reconstruction back
+            y_bar = self.continious_compress_to_y_bar(reconstructed_image)
+
+            # Find error
+            loss = torch.nn.functional.mse_loss(y_bar, real_y_bar) #+ torch.nn.functional.mse_loss(r_z_hat, standard_z_hat)
+
+            optim.zero_grad()
+            loss.backward()
+            optim.step()
+
+            if verbose:
+                print(f"Iteration {i+1}, loss: {loss.item()}, difference: {torch.sum(torch.abs(normal_reconstruction - reconstructed_image)).item()}")
+
+        return reconstructed_image
+    
+    def y_bar_optimize_from_imagedecoder(self, strings, shape, original_image=None, learning_rate=0.001, iterations=1000, normal_reconstruction=None, verbose=False):
+        '''
+        Reconstruct images by using encoder-decoder, then optimizing the latent representation towards the reconstruction
+        '''
+        #standard_compression = self.compress(original_image)
+        standard_y_hat, standard_z_hat = self.real_decode_to_y_bar(strings, shape)
+        standard_y_hat = standard_y_hat.detach()
+        y_hat_param = torch.nn.Parameter(standard_y_hat, requires_grad=True)
+
+
+        learning_rate = 0.0001
+        optim = torch.optim.Adam([y_hat_param], lr=learning_rate)
+
+        y_shape = [standard_z_hat.shape[2] * 4, standard_z_hat.shape[3] * 4]
+        Wh, Ww = y_shape
+
+        reconstructed_image = None
+
+        for i in range(iterations):
+
+            reconstructed_image = self.continious_decompress_from_y_bar(y_hat_param, Wh, Ww)
+
+            loss = torch.nn.functional.mse_loss(reconstructed_image, original_image)
+
+            optim.zero_grad()
+            loss.backward()
+            optim.step()
+
+            if verbose:
+                print(f"Iteration {i+1}, loss: {loss.item()}, difference: {torch.sum(torch.abs(normal_reconstruction - reconstructed_image)).item()}")
+
+        return reconstructed_image
