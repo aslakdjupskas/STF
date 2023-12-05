@@ -16,8 +16,6 @@ class STFOptimizer(SymmetricalTransFormer):
         This model actually needs to keep track of gradients when doing evaluation
         '''
 
-        self.update()
-
         for param in self.parameters():
             param.requires_grad = False
 
@@ -38,15 +36,18 @@ class STFOptimizer(SymmetricalTransFormer):
         if self.compressor == "standard":
             return super().compress(original_image)
         elif self.compressor == "optimized":
-            return self.optimized_compress(original_image)
+            with torch.enable_grad():
+                return self.optimized_compress(original_image)
         
     def decompress(self, strings, shape):
         if self.decompressor == "standard":
             return super().decompress(strings, shape)
         elif self.decompressor == "optimized":
-            return self.optimized_decompress(strings, shape)
+            with torch.enable_grad():
+                return self.optimized_decompress(strings, shape)
         elif self.decompressor == "no_quantization":
-            self.y_bar_optimize_from_imagedecoder(strings, shape, iterations=3, **self.meta_args)
+            with torch.enable_grad():
+                return self.y_bar_optimize_from_imagedecoder(strings, shape, **self.meta_args)
     
 
     def continious_compress_to_y_bar(self, x):
