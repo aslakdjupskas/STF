@@ -2,7 +2,7 @@ import torch
 from .stf import SymmetricalTransFormer
 from compressai.ops import ste_round
 from compressai.ans import BufferedRansEncoder, RansDecoder
-from compressai.utils.eval_model.__main__ import psnr
+# from compressai.utils.eval_model.__main__ import psnr
 # import wandb
 
 class STFBaseOptimizer(SymmetricalTransFormer):
