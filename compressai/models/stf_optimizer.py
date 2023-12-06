@@ -3,7 +3,7 @@ from .stf import SymmetricalTransFormer
 from compressai.ops import ste_round
 from compressai.ans import BufferedRansEncoder, RansDecoder
 # from compressai.utils.eval_model.__main__ import psnr
-# import wandb
+import wandb
 
 class STFBaseOptimizer(SymmetricalTransFormer):
 
@@ -256,8 +256,8 @@ class STFBaseOptimizer(SymmetricalTransFormer):
         return x_hat
     
     # View as trained compression
-    def optimized_compress(self, original_image, iterations=1000, normal_reconstruction=None, verbose=False):
-                            # wandb_log=False, wandb_project=None, log_every=100):
+    def optimized_compress(self, original_image, iterations=1000, normal_reconstruction=None, verbose=False,
+                            wandb_log=False, wandb_project=None, log_every=100):
 
         '''
         Generate compression from optimizing y when decoding and reconstructing the image
@@ -266,8 +266,8 @@ class STFBaseOptimizer(SymmetricalTransFormer):
         y, Wh, Ww = self.continious_compress_to_y(original_image)
         y_param = torch.nn.Parameter(y, requires_grad=True)
 
-        # if wandb_log:
-        #     wandb.init(project=wandb_project)
+        if wandb_log:
+            wandb.init(project=wandb_project)
 
 
         learning_rate = 0.0001
@@ -283,10 +283,10 @@ class STFBaseOptimizer(SymmetricalTransFormer):
             loss.backward()
             optim.step()
             
-            # if wandb_log:
-            #     if i % log_every == 0:
+            if wandb_log:
+                if i % log_every == 0:
             #         # psnr_scores.append(psnr(original_image, reconstructed_image).item())
-            #         wandb.log({"loss": loss.item()})
+                    wandb.log({"loss": loss.item()})
 
 
             if verbose:
