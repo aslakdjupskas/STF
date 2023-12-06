@@ -266,9 +266,13 @@ class STFBaseOptimizer(SymmetricalTransFormer):
         y, Wh, Ww = self.continious_compress_to_y(original_image)
         y_param = torch.nn.Parameter(y, requires_grad=True)
 
+        if wandb_log:
+            wandb.init(project=wandb_project)
+
+
         learning_rate = 0.0001
         optim = torch.optim.Adam([y_param], lr=learning_rate)
-        psnr_scores = torch.nn.Parameter(torch.Tensor([]), requires_grad=False)
+        psnr_scores = []
         for i in range(iterations):
 
             reconstructed_image = self.continious_decompress_from_y(y_param, Wh, Ww)['x_hat']
@@ -281,8 +285,8 @@ class STFBaseOptimizer(SymmetricalTransFormer):
             
             if wandb_log:
                 if i % log_every == 0:
-                    psnr_scores.append(psnr(original_image, reconstructed_image).item())
-                    wandb.log({"loss": loss.item(), "psnr": psnr(original_image, reconstructed_image).item()})
+                    # psnr_scores.append(psnr(original_image, reconstructed_image).item())
+                    wandb.log({"loss": loss.item()})
 
 
             if verbose:
@@ -294,12 +298,12 @@ class STFBaseOptimizer(SymmetricalTransFormer):
             reconstructed_image = super().decompress(*real_compress.values())['x_hat']
             print(f"Final, loss: {loss.item()}, difference: {torch.sum(torch.abs(normal_reconstruction - reconstructed_image)).item()}")
 
-        data = [[x, y] for (x, y) in zip(psnr_scores, range(len(1, psnr_scores+1)))]
-        table = wandb.Table(data=data, columns=["x", "y"])
-        wandb.log(
-        {
-        "my_custom_plot_id": wandb.plot.line(
-            table, "x", "y", title="Custom Y vs X Line Plot")})
+        # data = [[x, y] for (x, y) in zip(psnr_scores, range(len(1, psnr_scores+1)))]
+        # table = wandb.Table(data=data, columns=["x", "y"])
+        # wandb.log(
+        # {
+        # "my_custom_plot_id": wandb.plot.line(
+        #     table, "x", "y", title="Custom Y vs X Line Plot")})
         return real_compress
 
     # View as trained decrompession
