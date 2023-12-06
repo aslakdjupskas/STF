@@ -2,6 +2,8 @@ import torch
 from .stf import SymmetricalTransFormer
 from compressai.ops import ste_round
 from compressai.ans import BufferedRansEncoder, RansDecoder
+from compressai.utils.eval_model.__main__ import psnr
+import wandb
 
 class STFBaseOptimizer(SymmetricalTransFormer):
 
@@ -254,7 +256,8 @@ class STFBaseOptimizer(SymmetricalTransFormer):
         return x_hat
     
     # View as trained compression
-    def optimized_compress(self, original_image, iterations=1000, normal_reconstruction=None, verbose=False):
+    def optimized_compress(self, original_image, iterations=1000, normal_reconstruction=None, verbose=False,
+                            wandb_log=False, wandb_project=None, log_every=100):
 
         '''
         Generate compression from optimizing y when decoding and reconstructing the image
@@ -265,7 +268,7 @@ class STFBaseOptimizer(SymmetricalTransFormer):
 
         learning_rate = 0.0001
         optim = torch.optim.Adam([y_param], lr=learning_rate)
-
+        psnr_scores = torch.nn.Parameter(torch.Tensor([]), requires_grad=False)
         for i in range(iterations):
 
             reconstructed_image = self.continious_decompress_from_y(y_param, Wh, Ww)['x_hat']
@@ -275,6 +278,12 @@ class STFBaseOptimizer(SymmetricalTransFormer):
             optim.zero_grad()
             loss.backward()
             optim.step()
+            
+            if wandb_log:
+                if i % log_every == 0:
+                    psnr_scores.append(psnr(original_image, reconstructed_image).item())
+                    wandb.log({"loss": loss.item(), "psnr": psnr(original_image, reconstructed_image).item()})
+
 
             if verbose:
                 print(f"Iteration {i+1}, loss: {loss.item()}, difference: {torch.sum(torch.abs(normal_reconstruction - reconstructed_image)).item()}")
@@ -285,6 +294,12 @@ class STFBaseOptimizer(SymmetricalTransFormer):
             reconstructed_image = super().decompress(*real_compress.values())['x_hat']
             print(f"Final, loss: {loss.item()}, difference: {torch.sum(torch.abs(normal_reconstruction - reconstructed_image)).item()}")
 
+        data = [[x, y] for (x, y) in zip(psnr_scores, range(len(1, psnr_scores+1)))]
+        table = wandb.Table(data=data, columns=["x", "y"])
+        wandb.log(
+        {
+        "my_custom_plot_id": wandb.plot.line(
+            table, "x", "y", title="Custom Y vs X Line Plot")})
         return real_compress
 
     # View as trained decrompession
