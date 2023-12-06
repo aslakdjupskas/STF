@@ -2,7 +2,7 @@ import torch
 from .stf import SymmetricalTransFormer
 from compressai.ops import ste_round
 from compressai.ans import BufferedRansEncoder, RansDecoder
-# from compressai.utils.eval_model.__main__ import psnr
+from compressai.utils.eval_model.__main__ import psnr
 # import wandb
 
 class STFBaseOptimizer(SymmetricalTransFormer):
@@ -256,7 +256,7 @@ class STFBaseOptimizer(SymmetricalTransFormer):
         return x_hat
     
     # View as trained compression
-    def optimized_compress(self, original_image, iterations=1000, normal_reconstruction=None, verbose=False)
+    def optimized_compress(self, original_image, iterations=1000, normal_reconstruction=None, verbose=False):
                             # wandb_log=False, wandb_project=None, log_every=100):
 
         '''
