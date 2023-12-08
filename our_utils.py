@@ -2,13 +2,47 @@ import fiftyone
 from compressai.datasets import ImageFolder
 
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 
 import matplotlib.pyplot as plt
 from matplotlib import cm, colors
 
 from compressai.models.stf_optimizer import STFBaseOptimizer
+
+import os
+from PIL import Image
+
+class AllImagesInFolderDataSet(Dataset):
+    def __init__(self, main_dir, patch_size):
+        self.main_dir = main_dir
+        self.transform = transforms.Compose(
+            [transforms.CenterCrop(patch_size), transforms.ToTensor()]
+        )
+        self.all_imgs = os.listdir(main_dir)
+
+    def __len__(self):
+        return len(self.all_imgs)
+
+    def __getitem__(self, idx):
+        img_loc = os.path.join(self.main_dir, self.all_imgs[idx])
+        image = Image.open(img_loc).convert("RGB")
+        tensor_image = self.transform(image)
+        return tensor_image
+    
+def prepare_dataloader_from_folder(patch_size, test_batch_size, device="cpu", dataset_dir="openimages"):
+
+    test_dataset = AllImagesInFolderDataSet(dataset_dir, patch_size)
+
+    test_dataloader = DataLoader(
+        test_dataset,
+        batch_size=test_batch_size,
+        shuffle=False,
+        pin_memory=(device == "cuda"),
+    )
+
+    return test_dataloader
+
 
 
 def pull_openimages(traning_size, test_size, dataset_dir="openimages"):
