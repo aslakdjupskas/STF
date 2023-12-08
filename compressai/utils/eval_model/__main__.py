@@ -36,6 +36,8 @@ import compressai
 
 from compressai.zoo import load_state_dict, models
 
+from calculations import psnr
+
 torch.backends.cudnn.deterministic = True
 torch.set_num_threads(1)
 
@@ -59,11 +61,6 @@ def collect_images(rootpath: str) -> List[str]:
         for f in os.listdir(rootpath)
         if os.path.splitext(f)[-1].lower() in IMG_EXTENSIONS
     ]
-
-
-def psnr(a: torch.Tensor, b: torch.Tensor) -> float:
-    mse = F.mse_loss(a, b).item()
-    return -10 * math.log10(mse)
 
 
 def read_image(filepath: str) -> torch.Tensor:
