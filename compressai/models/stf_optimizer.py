@@ -257,7 +257,7 @@ class STFBaseOptimizer(SymmetricalTransFormer):
     
     # View as trained compression
     def optimized_compress(self, original_image, iterations=1000, normal_reconstruction=None, verbose=False,
-                            wandb_log=False, wandb_project=None, log_every=100):
+                            wandb_log=False, wandb_project=None, log_every=100, log_image_every=100):
 
         '''
         Generate compression from optimizing y when decoding and reconstructing the image
@@ -291,6 +291,9 @@ class STFBaseOptimizer(SymmetricalTransFormer):
                     rmse.append(rmse_and_snr(original_image, reconstructed_image)[0])
                     ms_snr.append(rmse_and_snr(original_image, reconstructed_image)[1])
                     wandb.log({"loss": loss})
+                if i % log_image_every == 0:
+                    wandb_rec = [wandb.Image(img, caption="Reconsruction {}".format(i+1)) for i, img in enumerate(reconstructed_image)]
+                    wandb.log({f"Reconstructions iteration {i}": wandb_rec})
 
             if verbose:
                 print(f"Iteration {i+1}, loss: {loss.item()}, difference: {torch.sum(torch.abs(normal_reconstruction - reconstructed_image)).item()}")
@@ -326,7 +329,7 @@ class STFBaseOptimizer(SymmetricalTransFormer):
         return real_compress
 
     # View as trained decrompession
-    def optimized_decompress(self, strings, shape, learning_rate=0.0001, iterations=1000, normal_reconstruction=None, verbose=False,
+    def optimized_decompress(self, strings, shape, original_image, learning_rate=0.0001, iterations=1000, normal_reconstruction=None, verbose=False,
                             wandb_log=False, wandb_project=None, log_every=100):
         '''
         Reconstruct images by optimizing image to get the same y_bar as given from compression
@@ -363,9 +366,9 @@ class STFBaseOptimizer(SymmetricalTransFormer):
 
             if wandb_log:
                 if i % log_every == 0:
-                    psnr_scores_de.append(psnr(real_y_bar, y_bar))
-                    rmse_de.append(rmse_and_snr(real_y_bar, y_bar)[0])
-                    ms_snr_de.append(rmse_and_snr(real_y_bar, y_bar)[1])
+                    psnr_scores_de.append(psnr(original_image, reconstructed_image))
+                    rmse_de.append(rmse_and_snr(original_image, reconstructed_image)[0])
+                    ms_snr_de.append(rmse_and_snr(original_image, reconstructed_image)[1])
                     wandb.log({"loss": loss})
 
             if verbose:
