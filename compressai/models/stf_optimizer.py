@@ -283,8 +283,9 @@ class STFBaseOptimizer(SymmetricalTransFormer):
             if wandb_log:
 
                 psnr_scores.append(psnr(original_image, reconstructed_image))
-                rmse.append(rmse_and_snr(original_image, reconstructed_image)[0])
-                ms_snr.append(rmse_and_snr(original_image, reconstructed_image)[1])
+                rm, snr = rmse_and_snr(original_image, reconstructed_image)
+                rmse.append(rm)
+                ms_snr.append(snr)
 
                 log_dict = {"loss compress": loss}
                 if i % log_image_every == 0:
@@ -357,8 +358,9 @@ class STFBaseOptimizer(SymmetricalTransFormer):
 
             if wandb_log: 
                 psnr_scores_de.append(psnr(original_image, reconstructed_image))
-                rmse_de.append(rmse_and_snr(original_image, reconstructed_image)[0])
-                ms_snr_de.append(rmse_and_snr(original_image, reconstructed_image)[1])
+                rm, snr = rmse_and_snr(original_image, reconstructed_image)
+                rmse_de.append(rm)
+                ms_snr_de.append(snr)
 
                 log_dict = {"loss decompress" + " " + indication: loss_de}
                 if i % log_image_every == 0:

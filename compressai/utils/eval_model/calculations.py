@@ -15,5 +15,5 @@ def rmse_and_snr(a: torch.Tensor, b: torch.Tensor) :
     rmse = torch.sqrt(mse)
     sp = torch.mean(a ** 2)
     ms_snr = sp / (mse + 1e-10)
-    return rmse, ms_snr
+    return rmse.detach(), ms_snr.detach()
 
