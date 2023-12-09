@@ -332,7 +332,6 @@ class STFBaseOptimizer(SymmetricalTransFormer):
         '''
         Reconstruct images by optimizing image to get the same y_bar as given from compression
         '''
-
         real_y_bar, _ = self.real_decode_to_y_bar(strings, shape)
 
         # Regain images
@@ -353,10 +352,10 @@ class STFBaseOptimizer(SymmetricalTransFormer):
             y_bar = self.continious_compress_to_y_bar(reconstructed_image)
 
             # Find error
-            loss = torch.nn.functional.mse_loss(y_bar, real_y_bar) #+ torch.nn.functional.mse_loss(r_z_hat, standard_z_hat)
+            loss_de = torch.nn.functional.mse_loss(y_bar, real_y_bar) #+ torch.nn.functional.mse_loss(r_z_hat, standard_z_hat)
 
             optim.zero_grad()
-            loss.backward()
+            loss_de.backward()
             optim.step()
 
             if wandb_log: 
@@ -364,14 +363,14 @@ class STFBaseOptimizer(SymmetricalTransFormer):
                 rmse_de.append(rmse_and_snr(original_image, reconstructed_image)[0])
                 ms_snr_de.append(rmse_and_snr(original_image, reconstructed_image)[1])
 
-                log_dict = {"loss decompress" + " " + indication: loss}
+                log_dict = {"loss decompress" + " " + indication: loss_de}
                 if i % log_image_every == 0:
                     log_dict[f"Decomoression Reconstructions iteration" + " " + indication] = [wandb.Image(img, caption=f"{k}") for k, img in enumerate(reconstructed_image)]
 
                 wandb.log(log_dict, step=i)
 
             if verbose:
-                print(f"Iteration {i+1}, loss: {loss.item()}, difference: {torch.sum(torch.abs(normal_reconstruction - reconstructed_image)).item()}")
+                print(f"Iteration {i+1}, loss: {loss_de.item()}, difference: {torch.sum(torch.abs(normal_reconstruction - reconstructed_image)).item()}")
 
         if wandb_log:
             data_de = [[x, y, z, w] for (x, y, z, w) in zip(
