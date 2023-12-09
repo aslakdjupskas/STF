@@ -130,3 +130,10 @@ dmypy.json
 
 /openimages
 compressai/pretrained/stf_0035_best.pth.tar
+saved_images 
+wandb
+
+compressai/version.py
+.DS_Store
+
+.gitignore
