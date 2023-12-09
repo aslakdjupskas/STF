@@ -257,7 +257,7 @@ class STFBaseOptimizer(SymmetricalTransFormer):
     
     # View as trained compression
     def optimized_compress(self, original_image, iterations=1000, normal_reconstruction=None, verbose=False,
-                            wandb_log=False, log_image_every=100):
+                            wandb_log=False, log_image_every=100, learning_rate=1e-4):
 
         '''
         Generate compression from optimizing y when decoding and reconstructing the image
@@ -266,7 +266,6 @@ class STFBaseOptimizer(SymmetricalTransFormer):
         y, Wh, Ww = self.continious_compress_to_y(original_image)
         y_param = torch.nn.Parameter(y, requires_grad=True)
 
-        learning_rate = 0.0001
         optim = torch.optim.Adam([y_param], lr=learning_rate)
         psnr_scores = []
         rmse = []
@@ -327,7 +326,7 @@ class STFBaseOptimizer(SymmetricalTransFormer):
         return real_compress
 
     # View as trained decrompession
-    def optimized_decompress(self, strings, shape, original_image, learning_rate=0.0001, iterations=1000, normal_reconstruction=None, verbose=False,
+    def optimized_decompress(self, strings, shape, original_image, learning_rate=1e-4, iterations=1000, normal_reconstruction=None, verbose=False,
                             wandb_log=False, log_image_every=100, indication=""):
         '''
         Reconstruct images by optimizing image to get the same y_bar as given from compression
@@ -338,8 +337,6 @@ class STFBaseOptimizer(SymmetricalTransFormer):
         reconstructed_image = super().decompress(strings, shape)['x_hat']
         reconstructed_image = torch.nn.Parameter(reconstructed_image.detach(), requires_grad=True)
 
-
-        learning_rate = 0.0001
         optim = torch.optim.Adam([reconstructed_image], lr=learning_rate)
 
         psnr_scores_de = []
