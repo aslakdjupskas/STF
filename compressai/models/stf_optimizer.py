@@ -296,7 +296,7 @@ class STFBaseOptimizer(SymmetricalTransFormer):
             if verbose:
                 print(f"Iteration {i+1}, loss: {loss.item()}, difference: {torch.sum(torch.abs(normal_reconstruction - reconstructed_image)).item()}")
 
-        real_compress = self.real_compress_y(y_param, Wh, Ww)
+        real_compress = self.real_compress_y(y_param.detach(), Wh, Ww)
 
         if verbose:
             reconstructed_image = super().decompress(*real_compress.values())['x_hat']
