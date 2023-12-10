@@ -36,7 +36,7 @@ import compressai
 
 from compressai.zoo import load_state_dict, models
 
-from calculations import psnr
+from .calculations import psnr
 
 torch.backends.cudnn.deterministic = True
 torch.set_num_threads(1)

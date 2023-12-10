@@ -4,6 +4,29 @@ from compressai.ops import ste_round
 from compressai.ans import BufferedRansEncoder, RansDecoder
 from compressai.utils.eval_model import psnr, rmse_and_snr
 import wandb
+import math
+
+class RateDistortionLoss(torch.nn.Module):
+    """Custom rate distortion loss with a Lagrangian parameter."""
+
+    def __init__(self, lmbda=1e-2):
+        super().__init__()
+        self.mse = torch.nn.MSELoss()
+        self.lmbda = lmbda
+
+    def forward(self, output, target):
+        N, _, H, W = target.size()
+        out = {}
+        num_pixels = N * H * W
+
+        out["bpp_loss"] = sum(
+            (torch.log(likelihoods).sum() / (-math.log(2) * num_pixels))
+            for likelihoods in output["likelihoods"].values()
+        )
+        out["mse_loss"] = self.mse(output["x_hat"], target)
+        out["loss"] = self.lmbda * 255 ** 2 * out["mse_loss"] + out["bpp_loss"]
+
+        return out
 
 class STFBaseOptimizer(SymmetricalTransFormer):
 
@@ -257,7 +280,7 @@ class STFBaseOptimizer(SymmetricalTransFormer):
     
     # View as trained compression
     def optimized_compress(self, original_image, iterations=1000, normal_reconstruction=None, verbose=False,
-                            wandb_log=False, log_image_every=100, learning_rate=1e-4):
+                            wandb_log=False, log_image_every=100, learning_rate=1e-4, lmbda=0.0035):
 
         '''
         Generate compression from optimizing y when decoding and reconstructing the image
@@ -266,15 +289,21 @@ class STFBaseOptimizer(SymmetricalTransFormer):
         y, Wh, Ww = self.continious_compress_to_y(original_image)
         y_param = torch.nn.Parameter(y, requires_grad=True)
 
+        rate_loss = RateDistortionLoss(lmbda=lmbda)
+
         optim = torch.optim.Adam([y_param], lr=learning_rate)
         psnr_scores = []
         rmse = []
         ms_snr = []
         for i in range(iterations):
 
-            reconstructed_image = self.continious_decompress_from_y(y_param, Wh, Ww)['x_hat']
+            recon = self.continious_decompress_from_y(y_param, Wh, Ww)
+            reconstructed_image = recon['x_hat']
 
-            loss = torch.nn.functional.mse_loss(reconstructed_image, original_image)
+            out_loss = rate_loss(recon, original_image)
+            loss = out_loss['loss']
+
+            #loss = torch.nn.functional.mse_loss(reconstructed_image, original_image)
 
             optim.zero_grad()
             loss.backward()
@@ -287,7 +316,7 @@ class STFBaseOptimizer(SymmetricalTransFormer):
                 rmse.append(rm)
                 ms_snr.append(snr)
 
-                log_dict = {"loss compress": loss}
+                log_dict = {"loss/compress": loss, "loss/bpp": out_loss['bpp_loss'], "loss/mse": out_loss['mse_loss']}
                 if i % log_image_every == 0:
                     log_dict[f"Reconstructions iteration Compress"] = [wandb.Image(img, caption=f"{k}") for k, img in enumerate(reconstructed_image)]
 
@@ -453,4 +482,7 @@ class STFDemonstrateNoQuantization(STFBaseOptimizer):
     def decompress(self, strings, shape):
         with torch.enable_grad():
             return self.y_bar_optimize_from_imagedecoder(strings, shape, self.original_image)
+        
+
+
         

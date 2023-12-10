@@ -12,6 +12,7 @@ from compressai.models.stf_optimizer import STFBaseOptimizer
 
 import os
 from PIL import Image
+import math
 
 class AllImagesInFolderDataSet(Dataset):
     def __init__(self, main_dir, patch_size):
